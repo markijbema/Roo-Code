@@ -45,6 +45,9 @@ export const globalSettingsSchema = z.object({
 	alwaysAllowModeSwitch: z.boolean().optional(),
 	alwaysAllowSubtasks: z.boolean().optional(),
 	alwaysAllowExecute: z.boolean().optional(),
+	alwaysAllowFollowupQuestions: z.boolean().optional(),
+	followupAutoApproveTimeoutMs: z.number().optional(),
+	alwaysAllowUpdateTodoList: z.boolean().optional(),
 	allowedCommands: z.array(z.string()).optional(),
 	allowedMaxRequests: z.number().nullish(),
 	autoCondenseContext: z.boolean().optional(),
@@ -105,6 +108,8 @@ export const globalSettingsSchema = z.object({
 	historyPreviewCollapsed: z.boolean().optional(),
 	profileThresholds: z.record(z.string(), z.number()).optional(),
 	hasOpenedModeSelector: z.boolean().optional(),
+	lastModeExportPath: z.string().optional(),
+	lastModeImportPath: z.string().optional(),
 })
 
 export type GlobalSettings = z.infer<typeof globalSettingsSchema>
@@ -143,6 +148,7 @@ export const SECRET_STATE_KEYS = [
 	"codeIndexOpenAiKey",
 	"codeIndexQdrantApiKey",
 	"codebaseIndexOpenAiCompatibleApiKey",
+	"codebaseIndexGeminiApiKey",
 ] as const satisfies readonly (keyof ProviderSettings)[]
 export type SecretState = Pick<ProviderSettings, (typeof SECRET_STATE_KEYS)[number]>
 
@@ -189,6 +195,9 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	alwaysAllowModeSwitch: true,
 	alwaysAllowSubtasks: true,
 	alwaysAllowExecute: true,
+	alwaysAllowFollowupQuestions: true,
+	alwaysAllowUpdateTodoList: true,
+	followupAutoApproveTimeoutMs: 0,
 	allowedCommands: ["*"],
 
 	browserToolEnabled: false,

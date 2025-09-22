@@ -10,6 +10,7 @@ import type { ClineMessage } from "@roo-code/types"
 import { ClineApiReqInfo, ClineAskUseMcpServer, ClineSayTool } from "@roo/ExtensionMessage"
 import { COMMAND_OUTPUT_STRING } from "@roo/combineCommandSequences"
 import { safeJsonParse } from "@roo/safeJsonParse"
+import { FollowUpData, SuggestionItem } from "@roo-code/types"
 
 import { useCopyToClipboard } from "@src/utils/clipboard"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
@@ -20,6 +21,7 @@ import { getLanguageFromPath } from "@src/utils/getLanguageFromPath"
 import { Button } from "@src/components/ui"
 
 import { ToolUseBlock, ToolUseBlockHeader } from "../common/ToolUseBlock"
+import UpdateTodoListToolBlock from "./UpdateTodoListToolBlock"
 import CodeAccordian from "../common/CodeAccordian"
 import CodeBlock from "../common/CodeBlock"
 import MarkdownBlock from "../common/MarkdownBlock"
@@ -48,8 +50,10 @@ interface ChatRowProps {
 	isStreaming: boolean
 	onToggleExpand: (ts: number) => void
 	onHeightChange: (isTaller: boolean) => void
-	onSuggestionClick?: (answer: string, event?: React.MouseEvent) => void
+	onSuggestionClick?: (suggestion: SuggestionItem, event?: React.MouseEvent) => void
 	onBatchFileResponse?: (response: { [key: string]: boolean }) => void
+	onFollowUpUnmount?: () => void
+	editable?: boolean
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -98,7 +102,9 @@ export const ChatRowContent = ({
 	isStreaming,
 	onToggleExpand,
 	onSuggestionClick,
+	onFollowUpUnmount,
 	onBatchFileResponse,
+	editable,
 }: ChatRowContentProps) => {
 	const { t } = useTranslation()
 	const { mcpServers, alwaysAllowMcp, currentCheckpoint } = useExtensionState()
@@ -279,7 +285,7 @@ export const ChatRowContent = ({
 
 	const followUpData = useMemo(() => {
 		if (message.type === "ask" && message.ask === "followup" && !message.partial) {
-			return safeJsonParse<any>(message.text)
+			return safeJsonParse<FollowUpData>(message.text)
 		}
 		return null
 	}, [message.type, message.ask, message.partial, message.text])
@@ -426,6 +432,21 @@ export const ChatRowContent = ({
 							)}
 						</span>
 					</div>
+				)
+			}
+			case "updateTodoList" as any: {
+				const todos = (tool as any).todos || []
+				return (
+					<UpdateTodoListToolBlock
+						todos={todos}
+						content={(tool as any).content}
+						onChange={(updatedTodos) => {
+							if (typeof vscode !== "undefined" && vscode?.postMessage) {
+								vscode.postMessage({ type: "updateTodoList", payload: { todos: updatedTodos } })
+							}
+						}}
+						editable={editable && isLast}
+					/>
 				)
 			}
 			case "newFileCreated":
@@ -1086,6 +1107,8 @@ export const ChatRowContent = ({
 					const { query = "", results = [] } = parsed?.content || {}
 
 					return <CodebaseSearchResultsDisplay query={query} results={results} />
+				case "user_edit_todos":
+					return <UpdateTodoListToolBlock userEdited onChange={() => {}} />
 				default:
 					return (
 						<>
@@ -1215,6 +1238,7 @@ export const ChatRowContent = ({
 								suggestions={followUpData?.suggest}
 								onSuggestionClick={onSuggestionClick}
 								ts={message?.ts}
+								onUnmount={onFollowUpUnmount}
 							/>
 						</>
 					)
